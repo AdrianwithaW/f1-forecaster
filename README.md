@@ -30,7 +30,15 @@ scenario reshapes the **Drivers'** and **Constructors'** championships.
   champion and the winning margin, with count-back on wins for ties.
 - **Configurable** — edit the points system (race & sprint scales), toggle the
   fastest-lap bonus (off by default, as in 2025+), and export/import scenarios
-  as JSON. Everything is saved to your browser automatically.
+  as JSON.
+- **Saved automatically** — your standings, settings and predictions are kept in
+  `localStorage` per season, and the app reopens the last season you were
+  working on. Nothing leaves your browser.
+- **Shareable links** — hit **🔗 Share** to copy a URL that encodes the whole
+  scenario (season, points config and every predicted result) into the link's
+  `#` fragment. Open it anywhere and it rebuilds the scenario, re-fetching live
+  standings for that season. The payload is gzip-compressed, so even a fully
+  filled-in season stays a few hundred characters.
 - **Manual mode** — no API access? Paste the grid yourself and carry on.
 
 ## Running it

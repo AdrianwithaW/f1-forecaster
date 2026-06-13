@@ -15,8 +15,15 @@ import {
   bulkAssign,
   exportScenario,
   importScenario,
+  getLastSeason,
 } from "./store.js";
 import { renderAll, renderOverview, renderStandings, renderRaces } from "./render.js";
+import {
+  buildShareUrl,
+  decodeScenario,
+  readScenarioFromHash,
+  clearScenarioHash,
+} from "./share.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -248,6 +255,7 @@ function wireEvents() {
   wireSettings();
   wireManual();
   wireBulk();
+  wireShare();
 
   // Standings tabs
   document.querySelectorAll(".tab").forEach((tab) => {
@@ -430,18 +438,77 @@ function wireBulk() {
   });
 }
 
+function wireShare() {
+  $("#share-btn").addEventListener("click", async () => {
+    const s = getState();
+    if (!s.drivers.length && Object.keys(s.predictions).length === 0) {
+      setStatus("Nothing to share yet — load a season and enter some results first.", "info");
+      return;
+    }
+    try {
+      const url = await buildShareUrl(exportScenario());
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch {
+        /* clipboard blocked (e.g. non-secure context) */
+      }
+      if (copied) {
+        const kb = Math.round(url.length / 1024);
+        setStatus(
+          `Share link copied to clipboard${kb >= 2 ? ` (~${kb} KB — some chat apps may truncate very long links)` : ""}.`,
+          "success"
+        );
+      } else {
+        // Fall back to a prompt the user can copy from manually.
+        window.prompt("Copy this shareable link:", url);
+      }
+    } catch (err) {
+      setStatus(`Couldn't build a share link: ${err.message}`, "error");
+    }
+  });
+}
+
+// Import a scenario that arrived via the URL hash, then fetch live standings for
+// its season so the predictions have drivers to attach to.
+async function applySharedScenario(code) {
+  let scenario;
+  try {
+    scenario = await decodeScenario(code);
+  } catch (err) {
+    setStatus(`That share link couldn't be read (${err.message}).`, "error");
+    return false;
+  }
+  importScenario(scenario); // sets season + points + predictions
+  els.seasonInput.value = getState().season;
+  clearScenarioHash(); // imported into localStorage now; don't re-import on refresh
+  setStatus("Loading shared scenario…", "info");
+  await loadSeason(getState().season); // keeps the imported predictions
+  return true;
+}
+
 // ---------- Boot ----------
-function boot() {
+async function boot() {
   wireEvents();
   const year = new Date().getFullYear();
-  // Restore the most recently used season if present, else current year.
-  const restored = loadSaved(year);
+
+  // 1) A scenario shared via URL takes priority.
+  const sharedCode = readScenarioFromHash();
+  if (sharedCode) {
+    const ok = await applySharedScenario(sharedCode);
+    if (ok) return;
+  }
+
+  // 2) Otherwise restore the last season used (falling back to current year).
+  const lastSeason = getLastSeason() || year;
+  const restored = loadSaved(lastSeason);
   els.seasonInput.value = getState().season || year;
   if (restored && getState().drivers.length) {
     showApp(true);
     fullRender(getState());
     setStatus(
-      `Restored saved ${getState().season} scenario. Hit “Load standings” to refresh from the API.`,
+      `Restored your saved ${getState().season} scenario. Hit “Load standings” to refresh from the API.`,
       "info"
     );
   } else {
