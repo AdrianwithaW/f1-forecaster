@@ -21,9 +21,11 @@ scenario reshapes the **Drivers'** and **Constructors'** championships.
 - **"Can they still win it?"** — from the *current* points it works out who is
   mathematically alive for the title, the max points still on offer, the gap to
   the leader, and whether the championship is already clinched.
-- **Clinch tracker** — a headline card shows the soonest number of races in
-  which the current leader could wrap up the title, plus the "magic number":
-  the points still needed for mathematical certainty.
+- **Clinch tracker** — a headline card shows how many more races the current
+  leader needs to win to wrap up the title, assuming a realistic head-to-head
+  (the leader wins each race while the nearest rival finishes 2nd), plus the
+  "magic number": the points still needed for mathematical certainty if that
+  rival were to win out.
 - **Projected outcome** — fill in every remaining race and it declares the
   champion and the winning margin, with count-back on wins for ties.
 - **Configurable** — edit the points system (race & sprint scales), toggle the

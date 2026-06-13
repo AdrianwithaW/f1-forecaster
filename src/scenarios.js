@@ -108,18 +108,28 @@ export function clinchScenario(state) {
   const alreadyClinched = lead > totalMax;
   const magicNumber = Math.max(0, totalMax - lead + 1);
 
-  // Earliest clinch: leader maxes every race, rival scores zero.
+  // Soonest the leader can clinch under a realistic head-to-head: they WIN every
+  // remaining race (and sprint) while the nearest rival finishes 2nd each time
+  // — the best the rival can do while the leader keeps winning. The title is
+  // clinched once the leader's running total can't be caught even if the rival
+  // were to then win every race that's still left.
   let racesUntilClinch = alreadyClinched ? 0 : null;
   if (!alreadyClinched) {
-    let leadPts = lead;
-    let rivalRemaining = totalMax;
+    const p2Race = state.points.race[1] || 0;
+    const p2Sprint = state.points.sprint[1] || 0;
+    let leaderTotal = leader.points;
+    let rivalTotal = rival.points;
+    let consumedMax = 0;
     let i = 0;
     for (const race of remaining) {
       i++;
-      const m = maxPointsPerRace(state.points, race.hasSprint);
-      leadPts += m; // leader wins this race/sprint
-      rivalRemaining -= m; // this race no longer available to the rival
-      if (leadPts > rivalRemaining) {
+      const winHaul = maxPointsPerRace(state.points, race.hasSprint); // leader wins
+      const rivalHaul = p2Race + (race.hasSprint ? p2Sprint : 0); // rival 2nd
+      leaderTotal += winHaul;
+      rivalTotal += rivalHaul;
+      consumedMax += winHaul;
+      const rivalCeiling = rivalTotal + (totalMax - consumedMax);
+      if (leaderTotal > rivalCeiling) {
         racesUntilClinch = i;
         break;
       }

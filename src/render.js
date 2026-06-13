@@ -80,10 +80,11 @@ function clinchCard(clinch) {
   }
 
   const n = clinch.racesUntilClinch;
+  const rivalShort = clinch.rival.lastName || clinch.rival.name;
   return {
     label,
-    value: `${n} race${n === 1 ? "" : "s"}`,
-    sub: `${magic} · soonest possible`,
+    value: `${n} win${n === 1 ? "" : "s"}`,
+    sub: `winning out, ${rivalShort} 2nd · ${magic}`,
   };
 }
 
