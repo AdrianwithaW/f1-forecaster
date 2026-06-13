@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>F1 Championship Forecaster</title>
+    <meta
+      name="description"
+      content="Project the Formula 1 drivers' and constructors' championships by entering hypothetical results for the remaining races and sprints."
+    />
+    <!-- Relative paths so it works under a GitHub Pages project subpath -->
+    <link rel="stylesheet" href="./src/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏁</text></svg>"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="flag">🏁</span>
+        <div>
+          <h1>F1 Championship Forecaster</h1>
+          <p class="tagline">
+            Map out who wins the title — drivers &amp; constructors, sprints and all.
+          </p>
+        </div>
+      </div>
+      <div class="controls">
+        <label class="field">
+          <span>Season</span>
+          <input id="season-input" type="number" min="1950" max="2100" step="1" />
+        </label>
+        <button id="load-btn" class="btn primary">Load standings</button>
+        <button id="settings-btn" class="btn ghost" title="Points &amp; options">⚙︎ Settings</button>
+      </div>
+    </header>
+
+    <div id="status-bar" class="status-bar" hidden></div>
+
+    <main id="app" hidden>
+      <!-- Summary / scenario overview -->
+      <section class="panel" id="overview-panel">
+        <div class="panel-head">
+          <h2>Championship picture</h2>
+          <div class="meta" id="overview-meta"></div>
+        </div>
+        <div id="overview-body" class="overview-grid"></div>
+      </section>
+
+      <div class="columns">
+        <!-- Left: predictions -->
+        <section class="panel" id="races-panel">
+          <div class="panel-head">
+            <h2>Remaining races</h2>
+            <div class="row-actions">
+              <button id="expand-all" class="btn tiny ghost">Expand all</button>
+              <button id="collapse-all" class="btn tiny ghost">Collapse all</button>
+              <button id="clear-all" class="btn tiny danger">Clear all</button>
+            </div>
+          </div>
+          <p class="hint" id="races-hint"></p>
+          <div id="races-list"></div>
+        </section>
+
+        <!-- Right: projected standings -->
+        <aside class="panel sticky" id="standings-panel">
+          <div class="tabs">
+            <button class="tab active" data-tab="drivers">Drivers</button>
+            <button class="tab" data-tab="constructors">Constructors</button>
+          </div>
+          <div id="standings-drivers" class="tab-pane active"></div>
+          <div id="standings-constructors" class="tab-pane"></div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Empty / manual state -->
+    <section id="empty-state" class="panel empty" hidden>
+      <h2>Get started</h2>
+      <p>
+        Enter a season and hit <strong>Load standings</strong> to pull the
+        current points from the Jolpica-F1 API, then enter hypothetical results
+        for the remaining races to see how the title race unfolds.
+      </p>
+      <p class="muted">
+        No live data? Switch to <button id="manual-btn" class="btn tiny ghost">manual entry</button>
+        and paste the grid yourself.
+      </p>
+    </section>
+
+    <!-- Settings dialog -->
+    <dialog id="settings-dialog">
+      <form method="dialog" class="dialog-body">
+        <h2>Settings</h2>
+
+        <fieldset>
+          <legend>Fastest lap bonus</legend>
+          <label class="checkbox">
+            <input type="checkbox" id="fl-enabled" />
+            Award +1 point for fastest lap (top 10)
+          </label>
+          <p class="muted small">Off by default — the bonus was scrapped from 2025.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Grand Prix points (P1 →)</legend>
+          <input type="text" id="race-points" class="points-input" />
+          <p class="muted small">Comma-separated, highest position first.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Sprint points (P1 →)</legend>
+          <input type="text" id="sprint-points" class="points-input" />
+        </fieldset>
+
+        <fieldset>
+          <legend>Scenario file</legend>
+          <div class="row-actions">
+            <button type="button" id="export-btn" class="btn tiny">Export</button>
+            <button type="button" id="import-btn" class="btn tiny">Import</button>
+            <input type="file" id="import-file" accept="application/json" hidden />
+          </div>
+        </fieldset>
+
+        <menu class="dialog-actions">
+          <button value="cancel" class="btn ghost">Close</button>
+          <button id="settings-save" value="save" class="btn primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <!-- Manual entry dialog -->
+    <dialog id="manual-dialog">
+      <form method="dialog" class="dialog-body">
+        <h2>Manual entry</h2>
+        <p class="muted small">
+          One driver per line: <code>Code, Driver Name, Team, points, wins</code><br />
+          e.g. <code>VER, Max Verstappen, Red Bull, 161, 4</code>
+        </p>
+        <textarea id="manual-drivers" rows="12" class="manual-text" placeholder="VER, Max Verstappen, Red Bull, 161, 4&#10;NOR, Lando Norris, McLaren, 158, 3"></textarea>
+        <label class="field">
+          <span>Remaining races (comma-separated names, suffix * for sprint)</span>
+          <input type="text" id="manual-races" placeholder="Canada, Spain*, Austria, Britain" />
+        </label>
+        <menu class="dialog-actions">
+          <button value="cancel" class="btn ghost">Cancel</button>
+          <button id="manual-apply" value="apply" class="btn primary">Apply</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <footer class="footer">
+      <span>
+        Data: <a href="https://github.com/jolpica/jolpica-f1" target="_blank" rel="noopener">Jolpica-F1</a>
+        (Ergast successor). Predictions are hypothetical.
+      </span>
+    </footer>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
