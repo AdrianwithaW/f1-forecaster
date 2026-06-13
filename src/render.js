@@ -53,37 +53,30 @@ function deltaSpan(delta) {
 
 // ---------- Overview ----------
 
-// Builds the "races until the leader clinches" stat card, with the magic
-// number (points needed for certainty) as the sub-line.
+// Builds the title "first to X points" card. Framing the clinch as a points
+// target (rather than a number of wins) is unambiguous: a "win" can mean
+// GP-only or GP + sprint, which give different answers, but points don't lie.
 function clinchCard(clinch) {
   if (!clinch) {
-    return { label: "Title clinch", value: "—", sub: "" };
+    return { label: "Title race", value: "—", sub: "" };
   }
   const who = clinch.leader.lastName || clinch.leader.name;
-  const label = `Races until ${who} wins title`;
 
   if (clinch.alreadyClinched) {
     return {
-      label,
+      label: `${who} — champion`,
       value: "🏆 Clinched",
       sub: clinch.rival
-        ? `Uncatchable by ${clinch.rival.lastName || clinch.rival.name}`
+        ? `Beyond ${clinch.rival.lastName || clinch.rival.name}'s reach (${clinch.rivalCeiling} max)`
         : "Title secured",
     };
   }
 
-  const magic = `Needs +${clinch.magicNumber} pt${clinch.magicNumber === 1 ? "" : "s"} to be certain`;
-
-  if (clinch.racesUntilClinch == null) {
-    // e.g. a points tie at the top with no races left to separate them.
-    return { label, value: "—", sub: magic };
-  }
-
-  const n = clinch.racesUntilClinch;
+  const rivalShort = clinch.rival.lastName || clinch.rival.name;
   return {
-    label,
-    value: `${n} win${n === 1 ? "" : "s"}`,
-    sub: `or +${clinch.magicNumber} pts — either guarantees the title`,
+    label: "Title — first to",
+    value: `${clinch.target} pts`,
+    sub: `${who} on ${clinch.leader.points}, needs +${clinch.magicNumber} · ${rivalShort} tops out at ${clinch.rivalCeiling}`,
   };
 }
 
@@ -98,7 +91,7 @@ export function renderOverview(state) {
 
   const maxRem = maxRemainingPoints(state);
   const counts = remainingCounts(state);
-  const { contenders } = titleContention(state.drivers, maxRem);
+  const { contenders, leaderFloor } = titleContention(state);
   const clinchedNow = isMathematicallyClinched(state.drivers, maxRem);
 
   const projected = projectDriverStandings(state);
@@ -122,7 +115,7 @@ export function renderOverview(state) {
   } else if (remaining.length === 0) {
     banner = `<div class="banner clinched">Season complete — final standings shown.</div>`;
   } else {
-    banner = `<div class="banner live">${aliveCount} driver${aliveCount === 1 ? "" : "s"} still mathematically alive for the title.</div>`;
+    banner = `<div class="banner live">${aliveCount} driver${aliveCount === 1 ? "" : "s"} still in title contention.</div>`;
   }
 
   const cards = [
@@ -187,7 +180,7 @@ export function renderOverview(state) {
       )
       .join("")}
     <div class="contenders stat-card">
-      <div class="label">Still mathematically alive (from current points)</div>
+      <div class="label">Still in title contention (from current points)</div>
       <div class="table-scroll">
         <table>
           <thead><tr>
@@ -198,8 +191,9 @@ export function renderOverview(state) {
         </table>
       </div>
       <p class="muted small" style="margin:8px 0 0">
-        “Ceiling” = current points + every remaining point won. A driver is “Out”
-        when their ceiling can’t reach the leader’s current total.
+        “Ceiling” = current points + every remaining point won. A driver is
+        “Out” once even their ceiling can’t beat the leader simply finishing
+        runner-up the rest of the way (${leaderFloor} pts here).
       </p>
     </div>`;
 }

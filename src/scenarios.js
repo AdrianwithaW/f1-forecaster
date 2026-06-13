@@ -24,37 +24,44 @@ export function remainingCounts(state) {
 
 // Title-contention analysis from current standings.
 // For each competitor: their best-case ceiling (current + max remaining) and
-// whether that ceiling can still reach/beat the current leader. A competitor is
-// "alive" if, by winning out, they could at least equal the leader's *current*
-// total (a conservative bound — the leader will usually score more, tightening
-// it further, but this cleanly identifies who is mathematically eliminated).
-export function titleContention(rows, maxRemaining) {
-  if (!rows || rows.length === 0) return { leader: null, contenders: [] };
+// whether that ceiling can still beat the leader. The bar is NOT the leader's
+// current points (that would only eliminate a chaser if the leader scored
+// nothing more all season — technically "mathematically alive" but absurd).
+// Instead a chaser is "out" once, even winning every remaining race, they
+// couldn't pass a leader who simply keeps finishing RUNNER-UP the rest of the
+// way (current points + 2nd place in every remaining Grand Prix and sprint).
+// That matches how people actually read the title race.
+export function titleContention(state) {
+  const rows = [...state.drivers].sort(
+    (a, b) => b.points - a.points || b.wins - a.wins
+  );
+  if (rows.length === 0) return { leader: null, contenders: [], leaderFloor: 0 };
 
-  // rows are objects with at least { name, points } — use current points.
-  const sorted = [...rows].sort((a, b) => b.points - a.points || b.wins - a.wins);
-  const leader = sorted[0];
+  const remaining = remainingRaces(state.schedule, state.completedRound);
+  const maxRemaining = remaining.reduce(
+    (sum, r) => sum + maxPointsPerRace(state.points, r.hasSprint),
+    0
+  );
+  // The leader's realistic floor: runner-up in every remaining session.
+  const secondAll = remaining.reduce((sum, r) => {
+    const gp = state.points.race[1] || 0;
+    const sprint = r.hasSprint ? state.points.sprint[1] || 0 : 0;
+    return sum + gp + sprint;
+  }, 0);
 
-  const contenders = sorted.map((r) => {
+  const leader = rows[0];
+  const leaderFloor = leader.points + secondAll;
+
+  const contenders = rows.map((r) => {
     const ceiling = r.points + maxRemaining;
     const gapToLeader = leader.points - r.points;
     const isLeader = r === leader;
-    // Eliminated if even winning everything cannot reach the leader's CURRENT
-    // total (and they are not the leader).
-    const alive = isLeader || ceiling >= leader.points;
-    return {
-      ...r,
-      ceiling,
-      gapToLeader,
-      isLeader,
-      alive,
-      // Points the leader could drop and still be uncatchable by this rival,
-      // i.e. how far clear in "win-out" terms.
-      cushion: leader.points - ceiling,
-    };
+    // Alive only if maxing out beats the leader's runner-up floor.
+    const alive = isLeader || ceiling > leaderFloor;
+    return { ...r, ceiling, gapToLeader, isLeader, alive };
   });
 
-  return { leader, contenders };
+  return { leader, contenders, leaderFloor, maxRemaining };
 }
 
 // Has the title already been mathematically clinched from current standings?
@@ -71,13 +78,15 @@ export function isMathematicallyClinched(rows, maxRemaining) {
 }
 
 // Clinch picture for the current leader vs their nearest rival, from current
-// points. Returns:
-//   - racesUntilClinch: the SOONEST number of remaining races after which the
-//     leader could be mathematically champion (they win every race + sprint,
-//     the nearest rival scores nothing). null if a tie makes it undecidable.
-//   - magicNumber: the classic "magic number" — points still needed for
-//     certainty. Any combination of points the leader gains or the rival fails
-//     to score that totals this number seals the title. 0 once clinched.
+// points, framed as a "first to X points" target — which avoids the ambiguity
+// of any "number of wins" (a win can mean GP-only or GP + sprint, and the two
+// give different answers). Returns:
+//   - target: the points total that mathematically secures the title. The first
+//     driver to reach it is champion, because no rival can exceed it.
+//   - rivalCeiling: the most the nearest rival can possibly finish on
+//     (their current points + every remaining point) = target - 1.
+//   - magicNumber: points the leader still needs to reach the target.
+//   - alreadyClinched: the leader's current total already beats the rival's max.
 export function clinchScenario(state) {
   const rows = [...state.drivers].sort(
     (a, b) => b.points - a.points || b.wins - a.wins
@@ -92,64 +101,38 @@ export function clinchScenario(state) {
     0
   );
 
-  // No rival, or rival cannot mathematically catch up even winning everything.
+  // No rival: the leader is uncatchable by definition.
   if (!rival) {
     return {
       leader,
       rival: null,
-      racesUntilClinch: 0,
+      totalMax,
+      target: leader.points,
+      rivalCeiling: 0,
       magicNumber: 0,
       alreadyClinched: true,
+      gap: leader.points,
       remainingCount: remaining.length,
     };
   }
 
-  const lead = leader.points - rival.points;
-  const alreadyClinched = lead > totalMax;
-  const magicNumber = Math.max(0, totalMax - lead + 1);
-
-  // Number of GRAND PRIX wins after which the leader is guaranteed champion no
-  // matter what else happens. This is a hard guarantee, so we credit the leader
-  // ONLY the Grand Prix win (no sprint, no fastest lap — those aren't implied by
-  // "winning the race") and hand the nearest rival the maximum everywhere else:
-  //   - 2nd in each Grand Prix the leader wins (+ fastest lap, which a 2nd-place
-  //     car can still set), and
-  //   - a win in every sprint, and
-  //   - a win in every remaining Grand Prix the leader does NOT win.
-  // Clinched once the leader's floor can't be caught by the rival's ceiling.
-  const gpWin = state.points.race[0] || 0;
-  const gpSecond = state.points.race[1] || 0;
-  const sprintWin = state.points.sprint[0] || 0;
-  const flPoint = state.points.fastestLapEnabled ? state.points.fastestLap : 0;
-
-  let racesUntilClinch = alreadyClinched ? 0 : null;
-  if (!alreadyClinched) {
-    let leaderFloor = leader.points; // leader: GP wins only
-    let rivalInWonRounds = 0; // rival's max in the rounds the leader wins the GP
-    let consumedRoundMax = 0; // total points available in those won rounds
-    let i = 0;
-    for (const race of remaining) {
-      i++;
-      leaderFloor += gpWin;
-      // Rival, in a round the leader wins the GP: 2nd in the GP (+ fastest lap)
-      // and the sprint win if it's a sprint weekend.
-      rivalInWonRounds += gpSecond + flPoint + (race.hasSprint ? sprintWin : 0);
-      consumedRoundMax += maxPointsPerRace(state.points, race.hasSprint);
-      // Rival also wins every round the leader hasn't won yet.
-      const rivalCeiling = rival.points + rivalInWonRounds + (totalMax - consumedRoundMax);
-      if (leaderFloor > rivalCeiling) {
-        racesUntilClinch = i;
-        break;
-      }
-    }
-  }
+  // The nearest rival can finish on at most (their points + every point left).
+  // Reaching one more than that guarantees the title regardless of how the
+  // points are scored — wins, sprints, fastest laps and all.
+  const rivalCeiling = rival.points + totalMax;
+  const target = rivalCeiling + 1;
+  const magicNumber = Math.max(0, target - leader.points);
+  const alreadyClinched = leader.points > rivalCeiling;
 
   return {
     leader,
     rival,
-    racesUntilClinch,
+    totalMax,
+    target,
+    rivalCeiling,
     magicNumber,
     alreadyClinched,
+    gap: leader.points - rival.points,
     remainingCount: remaining.length,
   };
 }
