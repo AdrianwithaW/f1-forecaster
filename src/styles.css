@@ -161,6 +161,16 @@ main { padding: 20px; max-width: 1320px; margin: 0 auto; }
 .tag.alive { background: rgba(32,201,151,0.15); color: var(--green); }
 .tag.out { background: rgba(255,90,90,0.12); color: #ff8b84; }
 .tag.leader { background: rgba(225,6,0,0.18); color: #ff7a74; }
+.mini-scenario {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 7px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.mini-scenario:hover { background: #2a313d; border-color: var(--red); }
 
 /* ---------- Standings tables ---------- */
 .tabs { display: flex; gap: 6px; margin-bottom: 12px; }

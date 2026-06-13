@@ -169,6 +169,41 @@ export function fillRoundFromOrder(round, orderedDriverIds, { sprint = false } =
   notify();
 }
 
+// Load the best-case scenario for a single driver across all remaining rounds:
+// that driver wins every Grand Prix and sprint (P1), and everyone else fills in
+// behind them in current championship order (leader takes P2, next P3, ...).
+// This is the toughest test of whether the driver can still take the title —
+// they max out while their rivals also score as heavily as possible.
+// Overwrites predictions for the remaining rounds.
+export function loadWinningScenario(driverId) {
+  const others = [...state.drivers]
+    .filter((d) => d.id !== driverId)
+    .sort((a, b) => (a.position || 999) - (b.position || 999) || b.points - a.points);
+  const ordered = [driverId, ...others.map((d) => d.id)];
+
+  const predictions = {};
+  for (const race of state.schedule) {
+    if (race.round <= state.completedRound) continue;
+    const gp = {};
+    ordered.slice(0, state.points.race.length).forEach((id, i) => {
+      gp[i + 1] = id;
+    });
+    const pred = { gp, sprint: {}, fl: null };
+    if (race.hasSprint) {
+      const sp = {};
+      ordered.slice(0, state.points.sprint.length).forEach((id, i) => {
+        sp[i + 1] = id;
+      });
+      pred.sprint = sp;
+    }
+    predictions[race.round] = pred;
+  }
+
+  state.predictions = predictions;
+  save();
+  notify();
+}
+
 // ----- Persistence ---------------------------------------------------------
 
 export function save() {

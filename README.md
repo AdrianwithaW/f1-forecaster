@@ -19,8 +19,12 @@ scenario reshapes the **Drivers'** and **Constructors'** championships.
   own points entry (P1–P8). Constructor points are recalculated from each team's
   drivers.
 - **"Can they still win it?"** — from the *current* points it works out who is
-  mathematically alive for the title, the max points still on offer, the gap to
-  the leader, and whether the championship is already clinched.
+  still in title contention, the max points still on offer, the gap to the
+  leader, and whether the championship is already clinched. Each driver has a
+  🎯 **best-case** button that loads their most favourable scenario — they win
+  every remaining race and sprint while everyone else finishes in championship
+  order behind them — so you can instantly see whether even their ideal weekend
+  run is enough to take the title.
 - **Clinch tracker** — a headline card frames the title as a **"first to X
   points"** race: X is the total that mathematically secures the championship
   (the nearest rival's maximum possible final score, plus one). It shows the

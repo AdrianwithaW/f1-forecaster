@@ -160,6 +160,8 @@ export function renderOverview(state) {
         <td class="num">${c.isLeader ? "—" : "-" + c.gapToLeader}</td>
         <td class="num">${c.ceiling}</td>
         <td>${tag}</td>
+        <td><button class="mini-scenario" data-action="winning-scenario" data-driver="${c.id}"
+          title="Load ${c.name}'s best case: they win every remaining race &amp; sprint, everyone else finishes in championship order behind">🎯</button></td>
       </tr>`;
     })
     .join("");
@@ -185,7 +187,7 @@ export function renderOverview(state) {
         <table>
           <thead><tr>
             <th>Driver</th><th class="col-team">Team</th><th class="num">Pts</th>
-            <th class="num">Gap</th><th class="num">Ceiling</th><th></th>
+            <th class="num">Gap</th><th class="num">Ceiling</th><th></th><th></th>
           </tr></thead>
           <tbody>${contendersRows}</tbody>
         </table>
@@ -193,7 +195,9 @@ export function renderOverview(state) {
       <p class="muted small" style="margin:8px 0 0">
         “Ceiling” = current points + every remaining point won. A driver is
         “Out” once even their ceiling can’t beat the leader simply finishing
-        runner-up the rest of the way (${leaderFloor} pts here).
+        runner-up the rest of the way (${leaderFloor} pts here). Tap 🎯 to load
+        a driver’s best case — they win out, everyone else finishes in
+        championship order behind — and watch the projected standings.
       </p>
     </div>`;
 }

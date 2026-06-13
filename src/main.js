@@ -13,11 +13,13 @@ import {
   clearAllPredictions,
   fillRoundFromOrder,
   bulkAssign,
+  loadWinningScenario,
   exportScenario,
   importScenario,
   getLastSeason,
 } from "./store.js";
 import { renderAll, renderOverview, renderStandings, renderRaces } from "./render.js";
+import { projectDriverStandings } from "./compute.js";
 import {
   buildShareUrl,
   decodeScenario,
@@ -185,6 +187,28 @@ function wireEvents() {
   });
   els.seasonInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") els.loadBtn.click();
+  });
+
+  // "Best case" scenario buttons in the contention table. The overview body is
+  // re-rendered in place, so delegate from the stable container.
+  document.getElementById("overview-body").addEventListener("click", (e) => {
+    const btn = e.target.closest('button[data-action="winning-scenario"]');
+    if (!btn) return;
+    const driverId = btn.dataset.driver;
+    loadWinningScenario(driverId);
+    renderRacesPreserveOpen(getState());
+    const d = getState().drivers.find((x) => x.id === driverId);
+    const champ = projectDriverStandings(getState())[0];
+    const wins = champ && d && champ.id === d.id;
+    setStatus(
+      `Loaded ${d?.name ?? "driver"}'s best case — they win every remaining race & sprint, ` +
+        `everyone else in championship order behind. ` +
+        (champ
+          ? `Projected champion: ${champ.name} (${champ.projected} pts)` +
+            (wins ? " — they take the title! 🏆" : ` — ${d?.name} falls short.`)
+          : ""),
+      wins ? "success" : "info"
+    );
   });
 
   // Delegated handler for the races list (selects + action buttons + toggles).
