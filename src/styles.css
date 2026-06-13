@@ -23,6 +23,17 @@ html, body {
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
   font-size: 15px;
   line-height: 1.45;
+  /* Stop iOS Safari inflating text and prevent stray horizontal page scroll. */
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+/* Any table that might be wider than its column scrolls inside this wrapper
+   rather than pushing the whole page wide (the iPhone overflow culprit). */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 a { color: var(--accent); }
@@ -291,3 +302,41 @@ legend { color: var(--muted); font-size: 12.5px; padding: 0 6px; }
 
 .footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24px; }
 code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+/* ---------- Phones ---------- */
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  main { padding: 12px; }
+  .panel { padding: 14px; margin-bottom: 14px; border-radius: 10px; }
+
+  /* Top bar stacks; controls go full width and wrap neatly. */
+  .topbar { padding: 12px 14px; gap: 12px; }
+  .brand h1 { font-size: 17px; }
+  .tagline { font-size: 12px; }
+  .controls { width: 100%; gap: 8px; }
+  #season-input { width: 84px; }
+  .controls .btn { flex: 1 1 auto; }
+
+  /* Trim the standings + contender tables so they fit without scrolling. */
+  table.standings th, table.standings td { padding: 6px 5px; font-size: 12.5px; }
+  .driver-team { display: none; }              /* keep the colour chip + name */
+  .contenders table { font-size: 12.5px; }
+  .contenders th, .contenders td { padding: 5px 5px; }
+  .col-team { display: none; }                 /* team is implied by the chip */
+
+  .stat-card .value { font-size: 19px; }
+
+  /* Race rows: let long GP names wrap instead of pushing the card wide. */
+  .race-summary { padding: 11px 12px; }
+  .race-title { flex-wrap: wrap; min-width: 0; row-gap: 2px; }
+  .race-title .small { flex-basis: 100%; }     /* circuit/country drops to its own line */
+  .race-body { padding: 12px; }
+
+  .footer { padding: 18px 14px; }
+}
+
+/* Very small screens: drop the leading position column padding further. */
+@media (max-width: 380px) {
+  table.standings th, table.standings td { padding: 5px 4px; font-size: 12px; }
+  .pos-row .plabel { width: 28px; }
+}

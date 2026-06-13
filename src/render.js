@@ -80,11 +80,10 @@ function clinchCard(clinch) {
   }
 
   const n = clinch.racesUntilClinch;
-  const rivalShort = clinch.rival.lastName || clinch.rival.name;
   return {
     label,
     value: `${n} win${n === 1 ? "" : "s"}`,
-    sub: `winning out, ${rivalShort} 2nd · ${magic}`,
+    sub: `or +${clinch.magicNumber} pts — either guarantees the title`,
   };
 }
 
@@ -163,7 +162,7 @@ export function renderOverview(state) {
         : `<span class="tag out">Out</span>`;
       return `<tr class="${c.alive ? "" : "dead"}">
         <td>${c.name}</td>
-        <td>${c.team}</td>
+        <td class="col-team">${c.team}</td>
         <td class="num">${c.points}</td>
         <td class="num">${c.isLeader ? "—" : "-" + c.gapToLeader}</td>
         <td class="num">${c.ceiling}</td>
@@ -189,13 +188,15 @@ export function renderOverview(state) {
       .join("")}
     <div class="contenders stat-card">
       <div class="label">Still mathematically alive (from current points)</div>
-      <table>
-        <thead><tr>
-          <th>Driver</th><th>Team</th><th class="num">Pts</th>
-          <th class="num">Gap</th><th class="num">Ceiling</th><th></th>
-        </tr></thead>
-        <tbody>${contendersRows}</tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>Driver</th><th class="col-team">Team</th><th class="num">Pts</th>
+            <th class="num">Gap</th><th class="num">Ceiling</th><th></th>
+          </tr></thead>
+          <tbody>${contendersRows}</tbody>
+        </table>
+      </div>
       <p class="muted small" style="margin:8px 0 0">
         “Ceiling” = current points + every remaining point won. A driver is “Out”
         when their ceiling can’t reach the leader’s current total.
@@ -230,7 +231,7 @@ function standingsTable(rows, { isDriver }) {
     })
     .join("");
 
-  return `<table class="standings"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  return `<div class="table-scroll"><table class="standings"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 
 export function renderStandings(state) {

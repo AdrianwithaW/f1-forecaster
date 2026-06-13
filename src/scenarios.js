@@ -108,28 +108,36 @@ export function clinchScenario(state) {
   const alreadyClinched = lead > totalMax;
   const magicNumber = Math.max(0, totalMax - lead + 1);
 
-  // Soonest the leader can clinch under a realistic head-to-head: they WIN every
-  // remaining race (and sprint) while the nearest rival finishes 2nd each time
-  // — the best the rival can do while the leader keeps winning. The title is
-  // clinched once the leader's running total can't be caught even if the rival
-  // were to then win every race that's still left.
+  // Number of GRAND PRIX wins after which the leader is guaranteed champion no
+  // matter what else happens. This is a hard guarantee, so we credit the leader
+  // ONLY the Grand Prix win (no sprint, no fastest lap — those aren't implied by
+  // "winning the race") and hand the nearest rival the maximum everywhere else:
+  //   - 2nd in each Grand Prix the leader wins (+ fastest lap, which a 2nd-place
+  //     car can still set), and
+  //   - a win in every sprint, and
+  //   - a win in every remaining Grand Prix the leader does NOT win.
+  // Clinched once the leader's floor can't be caught by the rival's ceiling.
+  const gpWin = state.points.race[0] || 0;
+  const gpSecond = state.points.race[1] || 0;
+  const sprintWin = state.points.sprint[0] || 0;
+  const flPoint = state.points.fastestLapEnabled ? state.points.fastestLap : 0;
+
   let racesUntilClinch = alreadyClinched ? 0 : null;
   if (!alreadyClinched) {
-    const p2Race = state.points.race[1] || 0;
-    const p2Sprint = state.points.sprint[1] || 0;
-    let leaderTotal = leader.points;
-    let rivalTotal = rival.points;
-    let consumedMax = 0;
+    let leaderFloor = leader.points; // leader: GP wins only
+    let rivalInWonRounds = 0; // rival's max in the rounds the leader wins the GP
+    let consumedRoundMax = 0; // total points available in those won rounds
     let i = 0;
     for (const race of remaining) {
       i++;
-      const winHaul = maxPointsPerRace(state.points, race.hasSprint); // leader wins
-      const rivalHaul = p2Race + (race.hasSprint ? p2Sprint : 0); // rival 2nd
-      leaderTotal += winHaul;
-      rivalTotal += rivalHaul;
-      consumedMax += winHaul;
-      const rivalCeiling = rivalTotal + (totalMax - consumedMax);
-      if (leaderTotal > rivalCeiling) {
+      leaderFloor += gpWin;
+      // Rival, in a round the leader wins the GP: 2nd in the GP (+ fastest lap)
+      // and the sprint win if it's a sprint weekend.
+      rivalInWonRounds += gpSecond + flPoint + (race.hasSprint ? sprintWin : 0);
+      consumedRoundMax += maxPointsPerRace(state.points, race.hasSprint);
+      // Rival also wins every round the leader hasn't won yet.
+      const rivalCeiling = rival.points + rivalInWonRounds + (totalMax - consumedRoundMax);
+      if (leaderFloor > rivalCeiling) {
         racesUntilClinch = i;
         break;
       }
