@@ -12,6 +12,7 @@ import {
   clearRound,
   clearAllPredictions,
   fillRoundFromOrder,
+  bulkAssign,
   exportScenario,
   importScenario,
 } from "./store.js";
@@ -246,6 +247,7 @@ function wireEvents() {
 
   wireSettings();
   wireManual();
+  wireBulk();
 
   // Standings tabs
   document.querySelectorAll(".tab").forEach((tab) => {
@@ -360,6 +362,70 @@ function wireManual() {
     showApp(true);
     fullRender(getState());
     setStatus(`Manual mode: ${drivers.length} drivers, ${schedule.length} races.`, "success");
+    dialog.close();
+  });
+}
+
+function wireBulk() {
+  const dialog = $("#bulk-dialog");
+  const driverSel = $("#bulk-driver");
+  const posSel = $("#bulk-position");
+  const fromSel = $("#bulk-from");
+  const toSel = $("#bulk-to");
+
+  $("#bulk-btn").addEventListener("click", () => {
+    const s = getState();
+    const remaining = s.schedule
+      .filter((r) => r.round > s.completedRound)
+      .sort((a, b) => a.round - b.round);
+    if (!remaining.length) {
+      setStatus("No remaining races to fill.", "info");
+      return;
+    }
+
+    driverSel.innerHTML = s.drivers
+      .map((d) => `<option value="${d.id}">${d.code} · ${d.name} (${d.team})</option>`)
+      .join("");
+
+    posSel.innerHTML = s.points.race
+      .map((pts, i) => `<option value="${i + 1}">P${i + 1} — ${pts} pt${pts === 1 ? "" : "s"}</option>`)
+      .join("");
+
+    const raceOpts = remaining
+      .map((r) => `<option value="${r.round}">R${r.round} · ${r.name}${r.hasSprint ? " (sprint)" : ""}</option>`)
+      .join("");
+    fromSel.innerHTML = raceOpts;
+    toSel.innerHTML = raceOpts;
+    fromSel.value = String(remaining[0].round);
+    toSel.value = String(remaining[remaining.length - 1].round);
+
+    dialog.showModal();
+  });
+
+  $("#bulk-apply").addEventListener("click", (e) => {
+    e.preventDefault();
+    const driverId = driverSel.value;
+    const position = Number(posSel.value);
+    const fromRound = Number(fromSel.value);
+    const toRound = Number(toSel.value);
+    const gp = $("#bulk-gp").checked;
+    const sprint = $("#bulk-sprint").checked;
+
+    if (!gp && !sprint) {
+      alert("Pick at least one of Grand Prix or Sprint.");
+      return;
+    }
+
+    const filled = bulkAssign({ driverId, position, fromRound, toRound, gp, sprint });
+    renderRacesPreserveOpen(getState());
+
+    const driver = getState().drivers.find((d) => d.id === driverId);
+    const lo = Math.min(fromRound, toRound);
+    const hi = Math.max(fromRound, toRound);
+    setStatus(
+      `${driver?.name ?? "Driver"} placed P${position} across rounds ${lo}–${hi} (${filled} slot${filled === 1 ? "" : "s"} filled).`,
+      "success"
+    );
     dialog.close();
   });
 }

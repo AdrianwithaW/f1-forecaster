@@ -67,24 +67,56 @@ export function ensureRoundPrediction(round) {
   return state.predictions[round];
 }
 
-// Assign a driver to a position within a session ("gp" | "sprint") for a round.
-// Enforces uniqueness: a driver can only occupy one scoring slot per session.
-export function setPrediction(round, session, position, driverId) {
-  const pred = ensureRoundPrediction(round);
-  const slot = pred[session];
-
-  // Clear any other position in this session currently held by the driver.
+// Place a driver into a position within a session slot, enforcing uniqueness:
+// a driver can only occupy one scoring slot per session, so clear them from any
+// other position first. Passing a falsy driverId clears the position.
+function placeInSlot(slot, position, driverId) {
   if (driverId) {
     for (const pos of Object.keys(slot)) {
       if (slot[pos] === driverId) delete slot[pos];
     }
+    slot[position] = driverId;
+  } else {
+    delete slot[position];
   }
+}
 
-  if (driverId) slot[position] = driverId;
-  else delete slot[position];
+// Assign a driver to a position within a session ("gp" | "sprint") for a round.
+export function setPrediction(round, session, position, driverId) {
+  const pred = ensureRoundPrediction(round);
+  placeInSlot(pred[session], position, driverId);
+  save();
+  notify();
+}
+
+// Place a driver into the same finishing position across a range of rounds.
+// `sessions` selects which to fill: { gp, sprint }. Sprint slots are only
+// touched on sprint weekends and only when the position scores in the sprint.
+// Returns the number of (round, session) slots that were filled.
+export function bulkAssign({ driverId, position, fromRound, toRound, gp = true, sprint = false }) {
+  if (!driverId || !position) return 0;
+  const lo = Math.min(fromRound, toRound);
+  const hi = Math.max(fromRound, toRound);
+  let filled = 0;
+
+  for (const race of state.schedule) {
+    if (race.round <= state.completedRound) continue;
+    if (race.round < lo || race.round > hi) continue;
+    const pred = ensureRoundPrediction(race.round);
+
+    if (gp && position <= state.points.race.length) {
+      placeInSlot(pred.gp, position, driverId);
+      filled++;
+    }
+    if (sprint && race.hasSprint && position <= state.points.sprint.length) {
+      placeInSlot(pred.sprint, position, driverId);
+      filled++;
+    }
+  }
 
   save();
   notify();
+  return filled;
 }
 
 export function setFastestLap(round, driverId) {

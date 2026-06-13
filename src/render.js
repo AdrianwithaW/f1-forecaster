@@ -13,6 +13,7 @@ import {
   titleContention,
   isMathematicallyClinched,
   projectedOutcome,
+  clinchScenario,
 } from "./scenarios.js";
 import { pointsForPosition } from "./points.js";
 
@@ -52,6 +53,40 @@ function deltaSpan(delta) {
 
 // ---------- Overview ----------
 
+// Builds the "races until the leader clinches" stat card, with the magic
+// number (points needed for certainty) as the sub-line.
+function clinchCard(clinch) {
+  if (!clinch) {
+    return { label: "Title clinch", value: "—", sub: "" };
+  }
+  const who = clinch.leader.lastName || clinch.leader.name;
+  const label = `Races until ${who} wins title`;
+
+  if (clinch.alreadyClinched) {
+    return {
+      label,
+      value: "🏆 Clinched",
+      sub: clinch.rival
+        ? `Uncatchable by ${clinch.rival.lastName || clinch.rival.name}`
+        : "Title secured",
+    };
+  }
+
+  const magic = `Needs +${clinch.magicNumber} pt${clinch.magicNumber === 1 ? "" : "s"} to be certain`;
+
+  if (clinch.racesUntilClinch == null) {
+    // e.g. a points tie at the top with no races left to separate them.
+    return { label, value: "—", sub: magic };
+  }
+
+  const n = clinch.racesUntilClinch;
+  return {
+    label,
+    value: `${n} race${n === 1 ? "" : "s"}`,
+    sub: `${magic} · soonest possible`,
+  };
+}
+
 export function renderOverview(state) {
   const body = document.getElementById("overview-body");
   const meta = document.getElementById("overview-meta");
@@ -77,6 +112,7 @@ export function renderOverview(state) {
   const outcome = allFilled ? projectedOutcome(projected) : { decided: false };
 
   const aliveCount = contenders.filter((c) => c.alive).length;
+  const clinch = clinchScenario(state);
 
   let banner = "";
   if (clinchedNow) {
@@ -113,6 +149,7 @@ export function renderOverview(state) {
           : "—",
       sub: contenders[1] ? `over ${contenders[1].name}` : "",
     },
+    clinchCard(clinch),
   ];
 
   const contendersRows = contenders

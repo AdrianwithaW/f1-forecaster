@@ -278,6 +278,16 @@ legend { color: var(--muted); font-size: 12.5px; padding: 0 6px; }
   font-size: 13px;
 }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 0; margin: 6px 0 0; }
+.bulk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+@media (max-width: 460px) { .bulk-grid { grid-template-columns: 1fr; } }
+.bulk-grid .field select {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
 
 .footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 24px; }
 code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
