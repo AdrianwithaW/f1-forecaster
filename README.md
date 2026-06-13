@@ -12,6 +12,9 @@ scenario reshapes the **Drivers'** and **Constructors'** championships.
   drop-in successor to Ergast). Just enter a season and hit **Load standings**.
 - **Scenario builder** — for each remaining race, drop drivers into finishing
   positions. The projected standings on the right update instantly.
+- **Bulk fill** — set a driver to the same finishing position across a whole
+  range of races in one go (e.g. "Verstappen wins every race from Canada to
+  Britain"), for the Grand Prix and/or the sprint.
 - **Sprints included** — sprint weekends are detected automatically and get their
   own points entry (P1–P8). Constructor points are recalculated from each team's
   drivers.

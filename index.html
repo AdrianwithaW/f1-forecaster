@@ -54,6 +54,7 @@
           <div class="panel-head">
             <h2>Remaining races</h2>
             <div class="row-actions">
+              <button id="bulk-btn" class="btn tiny primary">＋ Bulk fill…</button>
               <button id="expand-all" class="btn tiny ghost">Expand all</button>
               <button id="collapse-all" class="btn tiny ghost">Collapse all</button>
               <button id="clear-all" class="btn tiny danger">Clear all</button>
@@ -126,6 +127,52 @@
         <menu class="dialog-actions">
           <button value="cancel" class="btn ghost">Close</button>
           <button id="settings-save" value="save" class="btn primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <!-- Bulk fill dialog -->
+    <dialog id="bulk-dialog">
+      <form method="dialog" class="dialog-body">
+        <h2>Bulk fill results</h2>
+        <p class="muted small">
+          Put one driver in the same finishing position across every race in a
+          range — e.g. “Verstappen finishes P1 from Canada through Britain”.
+          This overwrites whoever currently holds that position in those races.
+        </p>
+
+        <div class="bulk-grid">
+          <label class="field">
+            <span>Driver</span>
+            <select id="bulk-driver"></select>
+          </label>
+          <label class="field">
+            <span>Finishing position</span>
+            <select id="bulk-position"></select>
+          </label>
+          <label class="field">
+            <span>From race</span>
+            <select id="bulk-from"></select>
+          </label>
+          <label class="field">
+            <span>To race</span>
+            <select id="bulk-to"></select>
+          </label>
+        </div>
+
+        <fieldset>
+          <legend>Apply to</legend>
+          <label class="checkbox">
+            <input type="checkbox" id="bulk-gp" checked /> Grand Prix
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="bulk-sprint" /> Sprint (sprint weekends only)
+          </label>
+        </fieldset>
+
+        <menu class="dialog-actions">
+          <button value="cancel" class="btn ghost">Cancel</button>
+          <button id="bulk-apply" value="apply" class="btn primary">Apply</button>
         </menu>
       </form>
     </dialog>
