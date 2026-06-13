@@ -17,9 +17,20 @@
 import { DEFAULT_POINTS, clonePoints } from "./points.js";
 
 const KEY_PREFIX = "f1-forecaster:v1:";
+const META_KEY = `${KEY_PREFIX}meta`;
 
 function storageKey(season) {
   return `${KEY_PREFIX}${season}`;
+}
+
+// Remember which season was last viewed so we can reopen it next time.
+export function getLastSeason() {
+  try {
+    const meta = JSON.parse(localStorage.getItem(META_KEY) || "{}");
+    return meta.lastSeason || null;
+  } catch {
+    return null;
+  }
 }
 
 const listeners = new Set();
@@ -175,6 +186,7 @@ export function save() {
       predictions: state.predictions,
     };
     localStorage.setItem(storageKey(state.season), JSON.stringify(payload));
+    localStorage.setItem(META_KEY, JSON.stringify({ lastSeason: state.season }));
   } catch (e) {
     // localStorage may be unavailable (private mode / quota). Non-fatal.
     console.warn("Could not persist state:", e);
