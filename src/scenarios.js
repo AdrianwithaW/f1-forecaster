@@ -70,6 +70,72 @@ export function isMathematicallyClinched(rows, maxRemaining) {
   return leader.points > secondCeiling;
 }
 
+// Clinch picture for the current leader vs their nearest rival, from current
+// points. Returns:
+//   - racesUntilClinch: the SOONEST number of remaining races after which the
+//     leader could be mathematically champion (they win every race + sprint,
+//     the nearest rival scores nothing). null if a tie makes it undecidable.
+//   - magicNumber: the classic "magic number" — points still needed for
+//     certainty. Any combination of points the leader gains or the rival fails
+//     to score that totals this number seals the title. 0 once clinched.
+export function clinchScenario(state) {
+  const rows = [...state.drivers].sort(
+    (a, b) => b.points - a.points || b.wins - a.wins
+  );
+  if (rows.length === 0) return null;
+
+  const leader = rows[0];
+  const rival = rows[1] || null;
+  const remaining = remainingRaces(state.schedule, state.completedRound);
+  const totalMax = remaining.reduce(
+    (sum, r) => sum + maxPointsPerRace(state.points, r.hasSprint),
+    0
+  );
+
+  // No rival, or rival cannot mathematically catch up even winning everything.
+  if (!rival) {
+    return {
+      leader,
+      rival: null,
+      racesUntilClinch: 0,
+      magicNumber: 0,
+      alreadyClinched: true,
+      remainingCount: remaining.length,
+    };
+  }
+
+  const lead = leader.points - rival.points;
+  const alreadyClinched = lead > totalMax;
+  const magicNumber = Math.max(0, totalMax - lead + 1);
+
+  // Earliest clinch: leader maxes every race, rival scores zero.
+  let racesUntilClinch = alreadyClinched ? 0 : null;
+  if (!alreadyClinched) {
+    let leadPts = lead;
+    let rivalRemaining = totalMax;
+    let i = 0;
+    for (const race of remaining) {
+      i++;
+      const m = maxPointsPerRace(state.points, race.hasSprint);
+      leadPts += m; // leader wins this race/sprint
+      rivalRemaining -= m; // this race no longer available to the rival
+      if (leadPts > rivalRemaining) {
+        racesUntilClinch = i;
+        break;
+      }
+    }
+  }
+
+  return {
+    leader,
+    rival,
+    racesUntilClinch,
+    magicNumber,
+    alreadyClinched,
+    remainingCount: remaining.length,
+  };
+}
+
 // Given a projected final table (all remaining races filled in), is the title
 // decided? Returns { decided, champion, runnerUp, margin }.
 export function projectedOutcome(projectedRows) {
